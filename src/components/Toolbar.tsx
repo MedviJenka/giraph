@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { useEffect, useRef, type CSSProperties } from "react";
 
 export interface ToolbarProps {
   projectName: string;
@@ -14,98 +14,159 @@ const barStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: 16,
-  padding: "8px 16px",
-  borderBottom: "1px solid #1e293b",
-  background: "#0f172a",
+  padding: "10px 16px",
 };
 
 const titleStyle: CSSProperties = {
   fontWeight: 700,
   fontSize: 16,
-  color: "#f1f5f9",
-  marginRight: 8,
-};
-
-const searchStyle: CSSProperties = {
-  flex: 1,
-  minWidth: 160,
-  maxWidth: 320,
-  padding: "6px 10px",
-  border: "1px solid #334155",
-  borderRadius: 6,
-  fontSize: 14,
-  background: "#1e293b",
-  color: "#e2e8f0",
-};
-
-const toggleGroupStyle: CSSProperties = {
-  display: "inline-flex",
-  border: "1px solid #334155",
-  borderRadius: 6,
-  overflow: "hidden",
+  letterSpacing: 0.2,
+  whiteSpace: "nowrap",
 };
 
 const summaryStyle: CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
-  gap: 12,
-  fontSize: 13,
-  color: "#94a3b8",
+  gap: 8,
 };
 
-function toggleButtonStyle(active: boolean): CSSProperties {
-  return {
-    padding: "6px 14px",
-    border: "none",
-    background: active ? "#2563eb" : "transparent",
-    color: active ? "#ffffff" : "#94a3b8",
-    fontSize: 14,
-    fontWeight: active ? 600 : 400,
-    cursor: "pointer",
-  };
+/** True when focus sits in a field that should own the keystroke itself. */
+function isTypingTarget(el: EventTarget | null): boolean {
+  const node = el as HTMLElement | null;
+  if (!node) return false;
+  const tag = node.tagName;
+  return (
+    tag === "INPUT" ||
+    tag === "TEXTAREA" ||
+    tag === "SELECT" ||
+    node.isContentEditable
+  );
 }
 
 export function Toolbar(props: ToolbarProps) {
   const { projectName, search, onSearch, mode, onMode, changeCount, warningCount } = props;
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Press "/" anywhere (outside a text field) to jump into the search box.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "/" && !e.metaKey && !e.ctrlKey && !e.altKey && !isTypingTarget(e.target)) {
+        e.preventDefault();
+        inputRef.current?.focus();
+        inputRef.current?.select();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   return (
-    <div style={barStyle}>
-      <span style={titleStyle} className="rainbow-text">{projectName}</span>
+    <div className="toolbar" style={barStyle}>
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 9 }}>
+        <LogoMark />
+        <span style={titleStyle} className="rainbow-text">
+          {projectName}
+        </span>
+      </span>
 
-      <input
-        type="text"
-        value={search}
-        onChange={(e) => onSearch(e.target.value)}
-        placeholder="Search components…"
-        data-testid="search-input"
-        style={searchStyle}
-      />
+      <div className="search-field">
+        <SearchIcon />
+        <input
+          ref={inputRef}
+          type="text"
+          value={search}
+          onChange={(e) => onSearch(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              if (search) onSearch("");
+              else inputRef.current?.blur();
+            }
+          }}
+          placeholder="Search components…"
+          data-testid="search-input"
+          aria-label="Search components"
+        />
+        <span className="kbd" aria-hidden="true">
+          /
+        </span>
+      </div>
 
-      <div style={toggleGroupStyle}>
+      <div className="seg-group" role="group" aria-label="Snapshot">
         <button
           type="button"
+          className="seg-btn"
           data-testid="mode-current"
           aria-pressed={mode === "current"}
           onClick={() => onMode("current")}
-          style={toggleButtonStyle(mode === "current")}
         >
           Current
         </button>
         <button
           type="button"
+          className="seg-btn"
           data-testid="mode-previous"
           aria-pressed={mode === "previous"}
           onClick={() => onMode("previous")}
-          style={toggleButtonStyle(mode === "previous")}
         >
           Before
         </button>
       </div>
 
       <span style={summaryStyle} data-testid="summary">
-        <span>{changeCount} changes</span>
-        {warningCount > 0 && <span style={{ color: "#dc2626" }}>⚠ {warningCount}</span>}
+        <span className="pill pill-changes">{changeCount} changes</span>
+        {warningCount > 0 && (
+          <span className="pill pill-warn">⚠ {warningCount}</span>
+        )}
       </span>
     </div>
+  );
+}
+
+function LogoMark() {
+  return (
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="url(#logo-grad)"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <defs>
+        <linearGradient id="logo-grad" x1="0" y1="0" x2="24" y2="24">
+          <stop offset="0%" stopColor="#f43f5e" />
+          <stop offset="50%" stopColor="#6366f1" />
+          <stop offset="100%" stopColor="#a855f7" />
+        </linearGradient>
+      </defs>
+      <circle cx="6" cy="6" r="2.5" />
+      <circle cx="18" cy="6" r="2.5" />
+      <circle cx="12" cy="18" r="2.5" />
+      <path d="M7.7 7.6 10.6 15.8" />
+      <path d="M16.3 7.6 13.4 15.8" />
+      <path d="M8.5 6 15.5 6" />
+    </svg>
+  );
+}
+
+function SearchIcon() {
+  return (
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="11" cy="11" r="7" />
+      <path d="m20 20-3.2-3.2" />
+    </svg>
   );
 }

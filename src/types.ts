@@ -16,6 +16,7 @@ export type NodeType =
   | "External Dependency";
 
 export type Relationship =
+  | "contains"
   | "imports"
   | "calls"
   | "inherits"

@@ -41,4 +41,17 @@ describe("Toolbar", () => {
     expect(summary).toHaveTextContent("3 changes");
     expect(summary).toHaveTextContent("1");
   });
+  it("focuses the search input when '/' is pressed outside a field", () => {
+    setup();
+    const input = screen.getByTestId("search-input");
+    expect(input).not.toHaveFocus();
+    fireEvent.keyDown(document.body, { key: "/" });
+    expect(input).toHaveFocus();
+  });
+
+  it("clears the query on Escape while typing", () => {
+    const { onSearch } = setup({ search: "auth" });
+    fireEvent.keyDown(screen.getByTestId("search-input"), { key: "Escape" });
+    expect(onSearch).toHaveBeenCalledWith("");
+  });
 });
