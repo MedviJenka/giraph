@@ -1,0 +1,130 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  font-family:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
+  color: #e2e8f0;
+  background: #0b1120;
+}
+
+/* React Flow dark theme overrides (v11 ships light defaults). */
+.react-flow__controls {
+  box-shadow: 0 0 0 1px #1e293b;
+}
+.react-flow__controls-button {
+  background: #1e293b;
+  border-bottom: 1px solid #0b1120;
+  color: #e2e8f0;
+  fill: #e2e8f0;
+}
+.react-flow__controls-button:hover {
+  background: #334155;
+}
+.react-flow__controls-button svg {
+  fill: #e2e8f0;
+}
+.react-flow__attribution {
+  background: transparent;
+  color: #475569;
+}
+
+/* ---- Modern UI: animated rainbow gradients ---- */
+
+/* Pan a wide multi-stop gradient horizontally for a flowing rainbow effect. */
+@keyframes rainbow-pan {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}
+
+/* Rotate the conic gradient used for animated borders. */
+@keyframes rainbow-spin {
+  to {
+    --angle: 360deg;
+  }
+}
+
+@property --angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+/* Soft pulsing glow, e.g. for newly added / selected nodes. */
+@keyframes glow-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 6px 0 rgba(99, 102, 241, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 16px 4px rgba(168, 85, 247, 0.75);
+  }
+}
+
+.rainbow-text {
+  background: linear-gradient(
+    90deg,
+    #f43f5e,
+    #f59e0b,
+    #22c55e,
+    #06b6d4,
+    #6366f1,
+    #a855f7,
+    #f43f5e
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: rainbow-pan 6s linear infinite;
+}
+
+/* Animated rainbow border via a rotating conic gradient behind the element. */
+.rainbow-border {
+  position: relative;
+  border: none !important;
+  background:
+    linear-gradient(#1e293b, #1e293b) padding-box,
+    conic-gradient(
+        from var(--angle),
+        #f43f5e,
+        #f59e0b,
+        #22c55e,
+        #06b6d4,
+        #6366f1,
+        #a855f7,
+        #f43f5e
+      )
+      border-box;
+  border: 2px solid transparent !important;
+  animation: rainbow-spin 4s linear infinite;
+}
+.rainbow-border:hover:not(:disabled) {
+  filter: brightness(1.15);
+}
+
+.node-glow {
+  animation: glow-pulse 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rainbow-text,
+  .rainbow-border,
+  .node-glow {
+    animation: none;
+  }
+}
