@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { current, previous } from "./data/blueprint";
 import { fetchSnapshot, subscribeSnapshot, type Snapshot } from "./lib/source";
 import { diffBlueprints, changeCount } from "./lib/diff";
@@ -13,8 +13,6 @@ export function App() {
   const [search, setSearch] = useState("");
   const [mode, setMode] = useState<"current" | "previous">("current");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [hiddenTypes, setHiddenTypes] = useState<Set<NodeType>>(new Set());
-  const [collapsedDirs, setCollapsedDirs] = useState<Set<string>>(new Set());
   // Initialize from the bundled sample so the UI is never empty, then overwrite
   // from the live server via fetch + SSE.
   const [snapshot, setSnapshot] = useState<Snapshot>({ previous, current });

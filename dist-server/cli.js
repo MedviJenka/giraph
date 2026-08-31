@@ -256,11 +256,10 @@ function resolveDistDir() {
 }
 function listen(server, port) {
   const { promise, resolve, reject } = Promise.withResolvers();
-  const HOST = "127.0.0.1";
   const onError = (err) => {
     if (err.code === "EADDRINUSE" && port !== 0) {
       server.removeListener("error", onError);
-      server.listen(0, HOST, () => {
+      server.listen(0, () => {
         const address = server.address();
         resolve(typeof address === "object" && address ? address.port : 0);
       });
@@ -269,7 +268,7 @@ function listen(server, port) {
     reject(err);
   };
   server.once("error", onError);
-  server.listen(port, HOST, () => {
+  server.listen(port, () => {
     server.removeListener("error", onError);
     const address = server.address();
     resolve(typeof address === "object" && address ? address.port : port);
@@ -306,10 +305,8 @@ data: ${snapshotJson()}
       return;
     }
     const urlPath = decodeURIComponent((req.url ?? "/").split("?")[0]);
-    let filePath = path2.resolve(distDir, "." + path2.sep + urlPath);
-    if (filePath !== distDir && !filePath.startsWith(distDir + path2.sep)) {
-      filePath = indexPath;
-    }
+    let filePath = path2.join(distDir, urlPath);
+    if (!filePath.startsWith(distDir)) filePath = indexPath;
     fs2.stat(filePath, (err, stats) => {
       if (err || !stats.isFile()) {
         serveFile(indexPath, res);

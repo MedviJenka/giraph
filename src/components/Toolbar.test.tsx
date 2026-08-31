@@ -66,20 +66,4 @@ describe("Toolbar", () => {
     fireEvent.keyDown(screen.getByTestId("search-input"), { key: "Escape" });
     expect(onSearch).toHaveBeenCalledWith("");
   });
-
-  it("toggles a category filter from the dropdown", () => {
-    const { onToggleType } = setup();
-    fireEvent.click(screen.getByTestId("filter-toggle"));
-    fireEvent.click(screen.getByTestId("filter-type-Module"));
-    expect(onToggleType).toHaveBeenCalledWith("Module");
-  });
-
-  it("collapses and expands all folders from the dropdown", () => {
-    const { onCollapseAll, onExpandAll } = setup();
-    fireEvent.click(screen.getByTestId("filter-toggle"));
-    fireEvent.click(screen.getByTestId("collapse-all"));
-    fireEvent.click(screen.getByTestId("expand-all"));
-    expect(onCollapseAll).toHaveBeenCalledTimes(1);
-    expect(onExpandAll).toHaveBeenCalledTimes(1);
-  });
 });
