@@ -89,11 +89,14 @@ function resolveDistDir(): string {
 /** Listen on the requested port, falling back to an ephemeral free port. */
 function listen(server: http.Server, port: number): Promise<number> {
   const { promise, resolve, reject } = Promise.withResolvers<number>();
+  // Bind to loopback only: the blueprint exposes repo structure and must never
+  // be reachable from other hosts on the network.
+  const HOST = "127.0.0.1";
   const onError = (err: NodeJS.ErrnoException) => {
     if (err.code === "EADDRINUSE" && port !== 0) {
       server.removeListener("error", onError);
       // Retry on an ephemeral port.
-      server.listen(0, () => {
+      server.listen(0, HOST, () => {
         const address = server.address();
         resolve(typeof address === "object" && address ? address.port : 0);
       });
@@ -102,7 +105,7 @@ function listen(server: http.Server, port: number): Promise<number> {
     reject(err);
   };
   server.once("error", onError);
-  server.listen(port, () => {
+  server.listen(port, HOST, () => {
     server.removeListener("error", onError);
     const address = server.address();
     resolve(typeof address === "object" && address ? address.port : port);
@@ -142,9 +145,13 @@ export async function startServer(opts: StartServerOptions): Promise<RunningServ
     }
 
     const urlPath = decodeURIComponent((req.url ?? "/").split("?")[0]);
-    let filePath = path.join(distDir, urlPath);
-    // Prevent path traversal outside the dist dir.
-    if (!filePath.startsWith(distDir)) filePath = indexPath;
+    let filePath = path.resolve(distDir, "." + path.sep + urlPath);
+    // Prevent path traversal: the resolved path must be distDir itself or a
+    // descendant. A bare startsWith check would also match sibling dirs sharing
+    // the prefix (e.g. `dist-server`), so require the trailing separator.
+    if (filePath !== distDir && !filePath.startsWith(distDir + path.sep)) {
+      filePath = indexPath;
+    }
 
     fs.stat(filePath, (err, stats) => {
       if (err || !stats.isFile()) {

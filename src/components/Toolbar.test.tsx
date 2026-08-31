@@ -5,6 +5,9 @@ import { Toolbar } from "./Toolbar";
 function setup(overrides: Partial<React.ComponentProps<typeof Toolbar>> = {}) {
   const onSearch = vi.fn();
   const onMode = vi.fn();
+  const onToggleType = vi.fn();
+  const onCollapseAll = vi.fn();
+  const onExpandAll = vi.fn();
   render(
     <Toolbar
       projectName="Project Blueprint"
@@ -14,10 +17,19 @@ function setup(overrides: Partial<React.ComponentProps<typeof Toolbar>> = {}) {
       onMode={onMode}
       changeCount={3}
       warningCount={1}
+      types={[
+        { type: "Directory", count: 2 },
+        { type: "Module", count: 5 },
+      ]}
+      hiddenTypes={new Set()}
+      onToggleType={onToggleType}
+      collapsedCount={0}
+      onCollapseAll={onCollapseAll}
+      onExpandAll={onExpandAll}
       {...overrides}
     />,
   );
-  return { onSearch, onMode };
+  return { onSearch, onMode, onToggleType, onCollapseAll, onExpandAll };
 }
 
 describe("Toolbar", () => {
@@ -53,5 +65,21 @@ describe("Toolbar", () => {
     const { onSearch } = setup({ search: "auth" });
     fireEvent.keyDown(screen.getByTestId("search-input"), { key: "Escape" });
     expect(onSearch).toHaveBeenCalledWith("");
+  });
+
+  it("toggles a category filter from the dropdown", () => {
+    const { onToggleType } = setup();
+    fireEvent.click(screen.getByTestId("filter-toggle"));
+    fireEvent.click(screen.getByTestId("filter-type-Module"));
+    expect(onToggleType).toHaveBeenCalledWith("Module");
+  });
+
+  it("collapses and expands all folders from the dropdown", () => {
+    const { onCollapseAll, onExpandAll } = setup();
+    fireEvent.click(screen.getByTestId("filter-toggle"));
+    fireEvent.click(screen.getByTestId("collapse-all"));
+    fireEvent.click(screen.getByTestId("expand-all"));
+    expect(onCollapseAll).toHaveBeenCalledTimes(1);
+    expect(onExpandAll).toHaveBeenCalledTimes(1);
   });
 });

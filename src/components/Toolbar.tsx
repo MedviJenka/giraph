@@ -1,4 +1,5 @@
-import { useEffect, useRef, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
+import type { NodeType } from "../types";
 
 export interface ToolbarProps {
   projectName: string;
@@ -8,6 +9,15 @@ export interface ToolbarProps {
   onMode: (m: "current" | "previous") => void;
   changeCount: number;
   warningCount: number;
+  /** Present node types with their counts, for the category filter. */
+  types: { type: NodeType; count: number }[];
+  /** Types currently toggled off (hidden from the canvas). */
+  hiddenTypes: Set<NodeType>;
+  onToggleType: (type: NodeType) => void;
+  /** How many directories are currently collapsed (drives the badge). */
+  collapsedCount: number;
+  onCollapseAll: () => void;
+  onExpandAll: () => void;
 }
 
 const barStyle: CSSProperties = {
@@ -44,7 +54,21 @@ function isTypingTarget(el: EventTarget | null): boolean {
 }
 
 export function Toolbar(props: ToolbarProps) {
-  const { projectName, search, onSearch, mode, onMode, changeCount, warningCount } = props;
+  const {
+    projectName,
+    search,
+    onSearch,
+    mode,
+    onMode,
+    changeCount,
+    warningCount,
+    types,
+    hiddenTypes,
+    onToggleType,
+    collapsedCount,
+    onCollapseAll,
+    onExpandAll,
+  } = props;
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Press "/" anywhere (outside a text field) to jump into the search box.
@@ -112,6 +136,15 @@ export function Toolbar(props: ToolbarProps) {
         </button>
       </div>
 
+      <FilterMenu
+        types={types}
+        hiddenTypes={hiddenTypes}
+        onToggleType={onToggleType}
+        collapsedCount={collapsedCount}
+        onCollapseAll={onCollapseAll}
+        onExpandAll={onExpandAll}
+      />
+
       <span style={summaryStyle} data-testid="summary">
         <span className="pill pill-changes">{changeCount} changes</span>
         {warningCount > 0 && (
@@ -119,6 +152,100 @@ export function Toolbar(props: ToolbarProps) {
         )}
       </span>
     </div>
+  );
+}
+
+interface FilterMenuProps {
+  types: { type: NodeType; count: number }[];
+  hiddenTypes: Set<NodeType>;
+  onToggleType: (type: NodeType) => void;
+  collapsedCount: number;
+  onCollapseAll: () => void;
+  onExpandAll: () => void;
+}
+
+function FilterMenu(props: FilterMenuProps) {
+  const { types, hiddenTypes, onToggleType, collapsedCount, onCollapseAll, onExpandAll } = props;
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Close on outside click or Escape so the panel never traps focus.
+  useEffect(() => {
+    if (!open) return;
+    const onDocClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onDocClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDocClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  const activeFilters = hiddenTypes.size + (collapsedCount > 0 ? 1 : 0);
+
+  return (
+    <div ref={ref} className="filter-menu">
+      <button
+        type="button"
+        className="seg-btn"
+        data-testid="filter-toggle"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+      >
+        Filter{activeFilters > 0 ? ` · ${activeFilters}` : ""} <CaretIcon />
+      </button>
+      {open && (
+        <div className="filter-panel" data-testid="filter-panel" role="menu">
+          <div className="filter-title">Categories</div>
+          {types.map(({ type, count }) => (
+            <label key={type} className="filter-row">
+              <input
+                type="checkbox"
+                checked={!hiddenTypes.has(type)}
+                onChange={() => onToggleType(type)}
+                data-testid={`filter-type-${type}`}
+              />
+              <span className="filter-row-label">{type}</span>
+              <span className="filter-row-count">{count}</span>
+            </label>
+          ))}
+          <div className="filter-divider" />
+          <div className="filter-title">Folders</div>
+          <div className="filter-actions">
+            <button
+              type="button"
+              className="ghost-btn"
+              data-testid="collapse-all"
+              onClick={onCollapseAll}
+            >
+              Collapse all
+            </button>
+            <button
+              type="button"
+              className="ghost-btn"
+              data-testid="expand-all"
+              onClick={onExpandAll}
+            >
+              Expand all
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CaretIcon() {
+  return (
+    <svg width="9" height="9" viewBox="0 0 10 10" aria-hidden="true" style={{ opacity: 0.7 }}>
+      <path d="M2 3.5 5 6.5 8 3.5" fill="none" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
   );
 }
 

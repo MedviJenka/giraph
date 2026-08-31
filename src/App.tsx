@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { current, previous } from "./data/blueprint";
 import { fetchSnapshot, subscribeSnapshot, type Snapshot } from "./lib/source";
 import { diffBlueprints, changeCount } from "./lib/diff";
@@ -7,11 +7,14 @@ import { Toolbar } from "./components/Toolbar";
 import { BlueprintCanvas } from "./components/BlueprintCanvas";
 import { ChangesPanel } from "./components/ChangesPanel";
 import { ExplainPanel } from "./components/ExplainPanel";
+import type { NodeType } from "./types";
 
 export function App() {
   const [search, setSearch] = useState("");
   const [mode, setMode] = useState<"current" | "previous">("current");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [hiddenTypes, setHiddenTypes] = useState<Set<NodeType>>(new Set());
+  const [collapsedDirs, setCollapsedDirs] = useState<Set<string>>(new Set());
   // Initialize from the bundled sample so the UI is never empty, then overwrite
   // from the live server via fetch + SSE.
   const [snapshot, setSnapshot] = useState<Snapshot>({ previous, current });
@@ -39,6 +42,44 @@ export function App() {
   const warnings = useMemo(() => detectWarnings(blueprint), [blueprint]);
   const selectedNode = blueprint.nodes.find((n) => n.id === selectedId) ?? null;
 
+  // Present types (with counts) for the category filter, and every directory
+  // that owns a `contains` subtree (collapse-all targets).
+  const typeCounts = useMemo(() => {
+    const counts = new Map<NodeType, number>();
+    for (const n of blueprint.nodes) counts.set(n.type, (counts.get(n.type) ?? 0) + 1);
+    return [...counts.entries()].map(([type, count]) => ({ type, count }));
+  }, [blueprint]);
+
+  const collapsibleDirIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const e of blueprint.edges) if (e.relationship === "contains") ids.add(e.source);
+    return ids;
+  }, [blueprint]);
+
+  const toggleType = useCallback((type: NodeType) => {
+    setHiddenTypes((prev) => {
+      const next = new Set(prev);
+      if (next.has(type)) next.delete(type);
+      else next.add(type);
+      return next;
+    });
+  }, []);
+
+  const toggleCollapse = useCallback((id: string) => {
+    setCollapsedDirs((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const collapseAll = useCallback(
+    () => setCollapsedDirs(new Set(collapsibleDirIds)),
+    [collapsibleDirIds],
+  );
+  const expandAll = useCallback(() => setCollapsedDirs(new Set<string>()), []);
+
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       <Toolbar
@@ -49,6 +90,12 @@ export function App() {
         onMode={setMode}
         changeCount={changeCount(changes)}
         warningCount={warnings.length}
+        types={typeCounts}
+        hiddenTypes={hiddenTypes}
+        onToggleType={toggleType}
+        collapsedCount={collapsedDirs.size}
+        onCollapseAll={collapseAll}
+        onExpandAll={expandAll}
       />
       <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -59,6 +106,9 @@ export function App() {
             search={search}
             selectedId={selectedId}
             onSelect={setSelectedId}
+            hiddenTypes={hiddenTypes}
+            collapsedDirs={collapsedDirs}
+            onToggleCollapse={toggleCollapse}
           />
         </div>
         <aside

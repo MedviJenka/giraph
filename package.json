@@ -1,9 +1,31 @@
 {
   "name": "giraph",
-  "private": true,
   "version": "0.2.0",
   "type": "module",
   "description": "Mount into any project and run `giraph run` — scans the repo, opens a live architectural blueprint UI, and updates in real time as files change.",
+  "keywords": [
+    "architecture",
+    "codebase",
+    "graph",
+    "blueprint",
+    "visualization",
+    "dependency-graph",
+    "code-analysis",
+    "reactflow",
+    "cli"
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/medvi/giraph#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/medvi/giraph.git"
+  },
+  "bugs": {
+    "url": "https://github.com/medvi/giraph/issues"
+  },
+  "engines": {
+    "node": ">=20"
+  },
   "bin": {
     "giraph": "dist-server/cli.js"
   },
@@ -11,18 +33,23 @@
     "dist",
     "dist-server"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "build:server": "node scripts/build-server.mjs",
     "build:all": "npm run build && npm run build:server",
     "typecheck:server": "tsc -p tsconfig.server.json --noEmit",
+    "prepublishOnly": "npm run build:all",
     "giraph": "node dist-server/cli.js run",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {
     "chokidar": "^3.6.0",
+    "d3-force": "^3.0.0",
     "ignore": "^5.3.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -32,6 +59,7 @@
     "@testing-library/jest-dom": "^6.4.8",
     "@testing-library/react": "^16.0.1",
     "@testing-library/user-event": "^14.5.2",
+    "@types/d3-force": "^3.0.10",
     "@types/node": "^22.5.4",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
