@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { Blueprint } from "../types";
-import { buildExplainPrompt } from "./explain";
+import { buildArchitecturePrompt, buildExplainPrompt } from "./explain";
 
 const blueprint: Blueprint = {
   nodes: [
@@ -63,5 +63,29 @@ describe("buildExplainPrompt", () => {
     const { user } = buildExplainPrompt(isolated.nodes[0], isolated);
     expect(user).toContain("Outgoing relationships: none");
     expect(user).toContain("Incoming relationships: none");
+  });
+});
+
+describe("buildArchitecturePrompt", () => {
+  it("summarizes the component inventory grouped by type and the resolved relationships", () => {
+    const { system, user } = buildArchitecturePrompt(blueprint);
+
+    expect(system).toMatch(/Overview:/);
+    expect(system).toMatch(/Layers:/);
+    expect(system).toMatch(/Data flow:/);
+
+    expect(user).toContain("Components (3 total):");
+    expect(user).toContain("- Service (1): AuthService");
+    expect(user).toContain("- API Endpoint (1): AuthRouter");
+
+    // Edges are resolved to display names, not ids.
+    expect(user).toContain("- AuthRouter calls AuthService");
+    expect(user).toContain("- AuthService depends_on UserRepository");
+  });
+
+  it("reports an empty blueprint explicitly", () => {
+    const { user } = buildArchitecturePrompt({ nodes: [], edges: [] });
+    expect(user).toContain("Components (0 total):");
+    expect(user).toContain("Relationships: none");
   });
 });
