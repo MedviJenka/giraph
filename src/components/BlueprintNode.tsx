@@ -14,7 +14,8 @@ const changeColor: Record<ChangeKind, string> = {
 const WARNING_COLOR = "#dc2626";
 
 export function BlueprintNode({ data }: NodeProps<BlueprintNodeData>) {
-  const { blueprint, change, warned, focused, dimmed } = data;
+  const { blueprint, change, warned, focused, dimmed, collapsible, collapsed, hiddenCount, onToggleCollapse } =
+    data;
   const accent = changeColor[change];
   const glow = change === "added" || focused;
 
@@ -56,11 +57,60 @@ export function BlueprintNode({ data }: NodeProps<BlueprintNodeData>) {
         </span>
       )}
 
-      <div style={{ fontWeight: 700, paddingRight: 16 }}>
-        {blueprint.name}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          fontWeight: 700,
+          paddingRight: 16,
+        }}
+      >
+        {collapsible && (
+          <button
+            type="button"
+            data-testid="collapse-toggle"
+            aria-label={collapsed ? "Expand folder" : "Collapse folder"}
+            aria-expanded={!collapsed}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleCollapse?.(blueprint.id);
+            }}
+            style={{
+              border: "none",
+              background: "transparent",
+              color: "#cbd5e1",
+              cursor: "pointer",
+              padding: 0,
+              width: 14,
+              fontSize: 12,
+              lineHeight: 1,
+            }}
+          >
+            {collapsed ? "▸" : "▾"}
+          </button>
+        )}
+        <span>{blueprint.name}</span>
         {warned && (
-          <span title="architecture warning" style={{ marginLeft: 6, color: WARNING_COLOR }}>
+          <span title="architecture warning" style={{ marginLeft: 2, color: WARNING_COLOR }}>
             ⚠
+          </span>
+        )}
+        {collapsed && hiddenCount > 0 && (
+          <span
+            data-testid="collapsed-count"
+            title={`${hiddenCount} nested items hidden`}
+            style={{
+              marginLeft: "auto",
+              fontSize: 11,
+              fontWeight: 600,
+              color: "#93c5fd",
+              background: "#1d283a",
+              borderRadius: 999,
+              padding: "1px 7px",
+            }}
+          >
+            +{hiddenCount}
           </span>
         )}
       </div>

@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { Position, ReactFlowProvider, type NodeProps } from "reactflow";
 import { BlueprintNode } from "./BlueprintNode";
 import type { BlueprintNodeData } from "../lib/layout";
@@ -36,6 +36,9 @@ function data(change: ChangeKind, warned: boolean): BlueprintNodeData {
     warned,
     focused: false,
     dimmed: false,
+    collapsible: false,
+    collapsed: false,
+    hiddenCount: 0,
   };
 }
 
@@ -70,5 +73,27 @@ describe("BlueprintNode", () => {
     const el = screen.getByTestId("bp-node");
     expect(el).toHaveAttribute("data-change", "unchanged");
     expect(el).not.toHaveTextContent("~");
+  });
+
+  it("toggles collapse when the chevron is clicked, without selecting", () => {
+    const onToggleCollapse = vi.fn();
+    renderNode({
+      ...data("unchanged", false),
+      collapsible: true,
+      collapsed: false,
+      onToggleCollapse,
+    });
+    fireEvent.click(screen.getByTestId("collapse-toggle"));
+    expect(onToggleCollapse).toHaveBeenCalledWith("tokenService");
+  });
+
+  it("shows the hidden-descendant count when collapsed", () => {
+    renderNode({
+      ...data("unchanged", false),
+      collapsible: true,
+      collapsed: true,
+      hiddenCount: 7,
+    });
+    expect(screen.getByTestId("collapsed-count")).toHaveTextContent("+7");
   });
 });

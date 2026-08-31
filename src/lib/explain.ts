@@ -46,6 +46,47 @@ export function buildExplainPrompt(node: BlueprintNode, blueprint: Blueprint): E
   return { system, user };
 }
 
+/**
+ * Build a grounded prompt describing the whole architecture: the component inventory
+ * grouped by type plus the resolved relationship list. Pure.
+ */
+export function buildArchitecturePrompt(blueprint: Blueprint): ExplainPrompt {
+  const nameById = new Map(blueprint.nodes.map((n) => [n.id, n.name]));
+
+  const byType = new Map<string, string[]>();
+  for (const n of blueprint.nodes) {
+    const bucket = byType.get(n.type) ?? [];
+    bucket.push(n.name);
+    byType.set(n.type, bucket);
+  }
+  const inventory = [...byType.entries()]
+    .map(([type, names]) => `- ${type} (${names.length}): ${names.join(", ")}`)
+    .join("\n");
+
+  const relationships = blueprint.edges
+    .map((e) => `- ${nameById.get(e.source) ?? e.source} ${e.relationship} ${nameById.get(e.target) ?? e.target}`)
+    .join("\n");
+
+  const system =
+    "You are a software architecture assistant. Explain the overall architecture of a codebase " +
+    "from its component blueprint for an engineer. Be concise and concrete. Respond in plain text " +
+    "with exactly these sections and nothing else:\n" +
+    "Overview: 1-2 sentences on what the system is and its overall shape.\n" +
+    "Layers: lines starting with '- ' naming the main layers or groupings.\n" +
+    "Data flow: 2-5 lines starting with '- ' tracing the key paths through the system.\n" +
+    "Key components: lines starting with '- ' naming the most important components and their role.\n" +
+    "External dependencies: lines starting with '- ' naming external systems, or '- none'.";
+
+  const user = [
+    `Components (${blueprint.nodes.length} total):`,
+    inventory || "- none",
+    "",
+    relationships ? `Relationships:\n${relationships}` : "Relationships: none",
+  ].join("\n");
+
+  return { system, user };
+}
+
 export interface ExplainOptions {
   apiKey: string;
   /** OpenAI-compatible chat model id. */
@@ -56,18 +97,12 @@ export interface ExplainOptions {
 }
 
 /**
- * Request an explanation from an OpenAI-compatible chat completions endpoint.
+ * Send a prompt to an OpenAI-compatible chat completions endpoint and return the text.
  * Runs entirely client-side with a user-supplied key; there is no backend to proxy through.
  */
-export async function explainComponent(
-  node: BlueprintNode,
-  blueprint: Blueprint,
-  opts: ExplainOptions,
-): Promise<string> {
+async function requestChat(prompt: ExplainPrompt, opts: ExplainOptions): Promise<string> {
   const { apiKey, model = "gpt-4o-mini", baseUrl = "https://api.openai.com/v1", signal } = opts;
   if (!apiKey) throw new Error("Missing API key.");
-
-  const { system, user } = buildExplainPrompt(node, blueprint);
 
   const res = await fetch(`${baseUrl.replace(/\/$/, "")}/chat/completions`, {
     method: "POST",
@@ -79,8 +114,8 @@ export async function explainComponent(
       model,
       temperature: 0.2,
       messages: [
-        { role: "system", content: system },
-        { role: "user", content: user },
+        { role: "system", content: prompt.system },
+        { role: "user", content: prompt.user },
       ],
     }),
     signal,
@@ -99,4 +134,18 @@ export async function explainComponent(
     throw new Error("Empty response from LLM.");
   }
   return content.trim();
+}
+
+/** Explain a single component grounded in its graph neighborhood. */
+export function explainComponent(
+  node: BlueprintNode,
+  blueprint: Blueprint,
+  opts: ExplainOptions,
+): Promise<string> {
+  return requestChat(buildExplainPrompt(node, blueprint), opts);
+}
+
+/** Explain the whole architecture grounded in the component inventory and relationships. */
+export function explainArchitecture(blueprint: Blueprint, opts: ExplainOptions): Promise<string> {
+  return requestChat(buildArchitecturePrompt(blueprint), opts);
 }

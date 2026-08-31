@@ -9,7 +9,7 @@ import ReactFlow, {
   type Node,
   type XYPosition,
 } from "reactflow";
-import type { Blueprint, ChangeSet, ArchitectureWarning } from "../types";
+import type { Blueprint, ChangeSet, ArchitectureWarning, NodeType } from "../types";
 import { toFlow, type BlueprintNodeData } from "../lib/layout";
 import { BlueprintNode } from "./BlueprintNode";
 
@@ -22,14 +22,18 @@ export interface BlueprintCanvasProps {
   search: string;
   selectedId: string | null;
   onSelect: (id: string | null) => void;
+  hiddenTypes: Set<NodeType>;
+  collapsedDirs: Set<string>;
+  onToggleCollapse: (id: string) => void;
 }
 
 export function BlueprintCanvas(props: BlueprintCanvasProps) {
-  const { blueprint, changes, warnings, search, selectedId, onSelect } = props;
+  const { blueprint, changes, warnings, search, selectedId, onSelect, hiddenTypes, collapsedDirs, onToggleCollapse } =
+    props;
 
   const layout = useMemo(
-    () => toFlow(blueprint, { changes, warnings, search, selectedId }),
-    [blueprint, changes, warnings, search, selectedId],
+    () => toFlow(blueprint, { changes, warnings, search, selectedId, hiddenTypes, collapsedDirs }),
+    [blueprint, changes, warnings, search, selectedId, hiddenTypes, collapsedDirs],
   );
 
   // Positions the user has dragged, keyed by node id. Survives re-layout so selecting or
@@ -43,11 +47,14 @@ export function BlueprintCanvas(props: BlueprintCanvasProps) {
   useEffect(() => {
     setNodes(
       layout.nodes.map((n) => {
+        // The fold handler lives in App state, so inject it here rather than in
+        // the pure layout. Preserve any position the user dragged the card to.
+        const withHandler = { ...n, data: { ...n.data, onToggleCollapse } };
         const pinned = draggedPositions.current.get(n.id);
-        return pinned ? { ...n, position: pinned } : n;
+        return pinned ? { ...withHandler, position: pinned } : withHandler;
       }),
     );
-  }, [layout, setNodes]);
+  }, [layout, setNodes, onToggleCollapse]);
 
   useEffect(() => {
     setEdges(layout.edges);

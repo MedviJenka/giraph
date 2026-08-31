@@ -1,0 +1,11 @@
+{
+  "name": "taskflow",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Sample layered task-management backend used as demo input for the giraph scanner.",
+  "scripts": {
+    "start": "node --experimental-strip-types src/app.ts",
+    "build": "tsc -p tsconfig.json"
+  }
+}

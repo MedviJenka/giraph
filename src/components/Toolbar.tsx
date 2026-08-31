@@ -8,6 +8,15 @@ export interface ToolbarProps {
   onMode: (m: "current" | "previous") => void;
   changeCount: number;
   warningCount: number;
+  /** Present node types with their counts, for the category filter. */
+  types: { type: NodeType; count: number }[];
+  /** Types currently toggled off (hidden from the canvas). */
+  hiddenTypes: Set<NodeType>;
+  onToggleType: (type: NodeType) => void;
+  /** How many directories are currently collapsed (drives the badge). */
+  collapsedCount: number;
+  onCollapseAll: () => void;
+  onExpandAll: () => void;
 }
 
 const barStyle: CSSProperties = {
@@ -111,6 +120,15 @@ export function Toolbar(props: ToolbarProps) {
           Before
         </button>
       </div>
+
+      <FilterMenu
+        types={types}
+        hiddenTypes={hiddenTypes}
+        onToggleType={onToggleType}
+        collapsedCount={collapsedCount}
+        onCollapseAll={onCollapseAll}
+        onExpandAll={onExpandAll}
+      />
 
       <span style={summaryStyle} data-testid="summary">
         <span className="pill pill-changes">{changeCount} changes</span>
